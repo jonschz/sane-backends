@@ -38,7 +38,7 @@ BACKEND_5MANS = sane-abaton.5 sane-agfafocus.5 sane-apple.5 sane-as6e.5 \
 	sane-hp5590.5 sane-hpljm1005.5 sane-cardscan.5 sane-hp3900.5 \
 	sane-epjitsu.5 sane-hs2p.5 sane-canon_dr.5 sane-xerox_mfp.5 \
 	sane-rts8891.5 sane-coolscan3.5 sane-kvs1025.5 sane-kvs20xx.5 \
-	sane-kvs40xx.5 sane-p5.5 sane-magicolor.5
+	sane-kvs40xx.5 sane-p5.5 sane-magicolor.5 sane-bropen.5
 
 EXTRA_DIST += sane-abaton.man sane-agfafocus.man sane-apple.man sane-as6e.man \
         sane-canon_lide70.man \
@@ -64,7 +64,7 @@ EXTRA_DIST += sane-abaton.man sane-agfafocus.man sane-apple.man sane-as6e.man \
 	sane-cardscan.man sane-hp3900.man sane-epjitsu.man sane-hs2p.man \
 	sane-canon_dr.man sane-xerox_mfp.man sane-rts8891.man \
 	sane-coolscan3.man sane-kvs1025.man sane-kvs20xx.man sane-kvs40xx.man \
-	sane-p5.man sane-magicolor.man
+	sane-p5.man sane-magicolor.man sane-bropen.man
 
 man7_MANS = sane.7
 EXTRA_DIST += sane.man
@@ -152,8 +152,8 @@ BEDOCS += umax/negative-types.txt umax/sane-logo.jpg \
 DESC_FILES = descriptions/abaton.desc descriptions/agfafocus.desc \
   descriptions/apple.desc descriptions/artec.desc \
   descriptions/artec_eplus48u.desc descriptions/as6e.desc \
-  descriptions/avision.desc descriptions/bh.desc descriptions/canon630u.desc \
-  descriptions/canon.desc descriptions/canon_dr.desc \
+  descriptions/avision.desc descriptions/bropen.desc descriptions/bh.desc \
+  descriptions/canon630u.desc descriptions/canon.desc descriptions/canon_dr.desc \
   descriptions/canon_lide70.desc \
   descriptions/canon_pp.desc descriptions/cardscan.desc \
   descriptions/coolscan2.desc descriptions/coolscan.desc \

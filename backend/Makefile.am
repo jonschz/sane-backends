@@ -160,7 +160,7 @@ clean-local:
 # example of working around that issue.
 be_convenience_libs = libabaton.la libagfafocus.la \
     libapple.la libartec.la libartec_eplus48u.la \
-    libas6e.la libavision.la libbh.la \
+    libas6e.la libavision.la libbh.la libbropen.la \
     libcanon.la libcanon630u.la libcanon_dr.la \
     libcanon_lide70.la \
     libcanon_pp.la libcardscan.la libcoolscan.la \
@@ -194,7 +194,7 @@ be_convenience_libs = libabaton.la libagfafocus.la \
 # Format is libsane-${backend}.la.
 be_dlopen_libs = libsane-abaton.la libsane-agfafocus.la \
     libsane-apple.la libsane-artec.la libsane-artec_eplus48u.la \
-    libsane-as6e.la libsane-avision.la libsane-bh.la \
+    libsane-as6e.la libsane-avision.la libsane-bh.la libsane-bropen.la \
     libsane-canon.la libsane-canon630u.la libsane-canon_dr.la \
     libsane-canon_lide70.la \
     libsane-canon_pp.la libsane-cardscan.la libsane-coolscan.la \
@@ -380,6 +380,22 @@ libsane_bh_la_LIBADD = $(COMMON_LIBS) libbh.la \
     ../sanei/sanei_scsi.lo \
     $(SCSI_LIBS) $(RESMGR_LIBS)
 EXTRA_DIST += bh.conf.in
+
+libbropen_la_SOURCES = bropen.c bropen_cmd.c bropen_opt.c \
+ bropen_cmd.h bropen.h
+libbropen_la_CPPFLAGS = $(AM_CPPFLAGS) -DBACKEND_NAME=bropen
+
+nodist_libsane_bropen_la_SOURCES = bropen-s.c
+libsane_bropen_la_CPPFLAGS = $(AM_CPPFLAGS) -DBACKEND_NAME=bropen
+libsane_bropen_la_LDFLAGS = $(DIST_SANELIBS_LDFLAGS)
+libsane_bropen_la_LIBADD = $(COMMON_LIBS) \
+    libbropen.la \
+    ../sanei/sanei_init_debug.lo \
+    ../sanei/sanei_constrain_value.lo \
+    ../sanei/sanei_config.lo \
+    sane_strstatus.lo \
+    ../sanei/sanei_usb.lo \
+    $(SANEI_SANEI_JPEG_LO) $(JPEG_LIBS) $(USB_LIBS) $(RESMGR_LIBS)
 
 libcanon_la_SOURCES = canon.c canon.h
 libcanon_la_CPPFLAGS = $(AM_CPPFLAGS) -DBACKEND_NAME=canon

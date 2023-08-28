@@ -1,0 +1,27 @@
+.TH sane\-bropen 5 "26 Aug 2023" "@PACKAGEVERSION@" "SANE Scanner Access Now Easy"
+.IX sane\-bropen
+
+.SH NAME
+sane\-bropen \- Early open-source SANE backend for Brother scanners
+
+.SH DESCRIPTION
+The
+.B sane\-bropen
+library implements a SANE (Scanner Access Now Easy) backend which
+provides access to the Brother DCP-L2500D scanner. Other devices are expected
+to work as well, but have not been tested yet.
+
+.SH KNOWN ISSUES
+This library is not related to Brother Industries Inc. in any way. It is in an
+early state and may harm your device. Use at your own risk.
+
+.SH CREDITS
+The backend was written by Jonathan Schulz, reusing some code published in
+this library (especially the kvs20xx backend).
+
+.SH "SEE ALSO"
+.BR sane (7),
+.BR sane\-usb (5),
+
+.SH AUTHOR
+Jonathan Schulz
