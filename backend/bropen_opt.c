@@ -45,19 +45,6 @@ static SANE_String_Const scan_modes_ui[] = {
 
 static const SANE_Range resolutions_range = {100, 1200, 10};
 
-/* List of feeder modes */
-static SANE_String_Const feeder_mode_list[] = {
-    SANE_I18N("single"),
-    SANE_I18N("continuous"),
-    NULL};
-
-/* List of manual feed mode */
-static SANE_String_Const manual_feed_list[] = {
-    SANE_I18N("off"),
-    SANE_I18N("wait_doc"),
-    SANE_I18N("wait_key"),
-    NULL};
-
 /* List of paper sizes */
 static SANE_String_Const paper_list[] = {
     SANE_I18N("user_def"),
@@ -109,29 +96,6 @@ static SANE_Range byte_value_range = {0, 255, 0};
 
 static SANE_Range param_100_range = {0, 100, 0};
 
-/* List of image emphasis options, 5 steps */
-static SANE_String_Const image_emphasis_list[] = {
-    SANE_I18N("none"),
-    SANE_I18N("low"),
-    SANE_I18N("medium"),
-    SANE_I18N("high"),
-    SANE_I18N("smooth"),
-    NULL};
-
-/* List of gamma */
-static SANE_String_Const gamma_list[] = {
-    SANE_I18N("normal"),
-    SANE_I18N("crt"),
-    NULL};
-static unsigned gamma_val[] = {0, 1};
-
-/* List of lamp color dropout */
-static SANE_String_Const lamp_list[] = {
-    SANE_I18N("normal"),
-    SANE_I18N("red"),
-    SANE_I18N("green"),
-    SANE_I18N("blue"),
-    NULL};
 
 /* Reset the options for that scanner. */
 void bropen_init_options(struct scanner *s)

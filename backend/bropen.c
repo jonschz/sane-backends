@@ -274,8 +274,6 @@ sane_get_option_descriptor(SANE_Handle handle, SANE_Int option)
 SANE_Status
 sane_start(SANE_Handle handle)
 {
-  SANE_Byte write_buffer[WRITE_BUFFER_SIZE];
-
   struct scanner *s = (struct scanner *)handle;
   SANE_Status st = SANE_STATUS_GOOD;
 
@@ -300,9 +298,7 @@ sane_start(SANE_Handle handle)
 
   /* This values appear to always be the same, and I don't know its interpretation. Maybe double/single sided support?  */
   if (response.unknown_2 != 2) {
-    char text_buffer[3 * 255 + 1];
-    hex_print_buffer_to_str(text_buffer, sizeof(text_buffer), s->usb_read_buffer, 255);
-    DBG(DBG_WARN, "Warning: Unexpected return values in format description:\n%s\n", text_buffer);
+    log_error_with_hexdump(DBG_WARN, "Warning: Unexpected return values in format description:\n%s\n", s->usb_read_buffer, 255);
   }
 
   update_window_from_scanner_response(s, &response);
@@ -324,9 +320,11 @@ sane_start(SANE_Handle handle)
     s->window.bytes_per_line *= 3;
 
   return SANE_STATUS_GOOD;
+
+  SANE_Status st_deactivate;
 exit:
-  SANE_Status st_deact = deactivate_scanner(handle);
-  if (st_deact)
+  st_deactivate = deactivate_scanner(handle);
+  if (st_deactivate)
     DBG(DBG_ERR, "Error handler encountered an additional error while deactivating scanner: %d\n", st);
   return st;
 }
@@ -376,9 +374,7 @@ SANE_Status read_phase1(struct scanner *s) {
 
     const size_t END_OF_PAGE_HEADER_LEN = 10;
     if (s->usb_buffer_size == END_OF_PAGE_HEADER_LEN) {
-      char text_buffer[255];
-      hex_print_buffer_to_str(text_buffer, sizeof(text_buffer), s->usb_read_buffer, END_OF_PAGE_HEADER_LEN);
-      DBG(DBG_DBG, "Received end of page (hexdump: %s)\n", text_buffer);
+      log_error_with_hexdump(DBG_DBG, "Received end of page (hexdump: %s)\n", s->usb_read_buffer, END_OF_PAGE_HEADER_LEN);
       // TODO do something here - especially for button-induced multi-page scans
       while (!s->cancelled) {
         s->usb_buffer_size = MAX_READ_DATA_SIZE;
@@ -439,21 +435,22 @@ SANE_Status read_phase1(struct scanner *s) {
       }
     }
   }
+  return SANE_STATUS_GOOD;
 }
 
 SANE_Status check_image_expected_size(struct scanner *s) {
   int32_t expected_width = s->window.lower_right_x - s->window.upper_left_x;
   int32_t expected_height = s->window.lower_right_y - s->window.upper_left_y;
-  if (s->window.actual_image_width != expected_width) {
+  if ((int32_t)s->window.actual_image_width != expected_width) {
     /* padding / truncating in x does not appear to ever be needed */
     DBG(DBG_ERR, "Invalid size: Expected a width of %d, got %ld",
         expected_width, s->window.actual_image_width);
     return SANE_STATUS_IO_ERROR;
   }
-  if (s->window.actual_image_height < expected_height)
+  if ((int32_t)s->window.actual_image_height < expected_height)
     DBG(DBG_WARN, "Requested %d lines, got %ld lines. The last line will be repeated\n",
         expected_height, s->window.actual_image_height);
-  else if (s->window.actual_image_height > expected_height)
+  else if ((int32_t)s->window.actual_image_height > expected_height)
     DBG(DBG_WARN, "Requested %d lines, got %ld lines. The extra lines will be truncated\n",
         expected_height, s->window.actual_image_height);
   else
@@ -507,7 +504,7 @@ SANE_Status read_phase2(struct scanner *s) {
       DBG(DBG_ERR, "Error reading from temp file: %d\n", file_error);
       return SANE_STATUS_IO_ERROR;
     }
-    if (data_read < s->window.bytes_per_line) {
+    if (data_read < (int)s->window.bytes_per_line) {
       DBG(DBG_ERR, "Incomplete read from temp file\n");
       return SANE_STATUS_IO_ERROR;
     }
@@ -551,7 +548,7 @@ sane_read(SANE_Handle handle, SANE_Byte *buf,
   *len = 0;
   
   while (!s->cancelled
-         && s->total_lines_written < s->window.lower_right_y - s->window.upper_left_y) {
+         && (int32_t)s->total_lines_written < (int32_t)s->window.lower_right_y - (int32_t)s->window.upper_left_y) {
     if (s->scanline_buffer_bytes_left == 0) {
       // Fill one scanline
       st = read_phase2(s);
@@ -559,7 +556,7 @@ sane_read(SANE_Handle handle, SANE_Byte *buf,
         goto exit;
     }
     SANE_Int target_buffer_space_left =  max_len - *len;
-    if (s->scanline_buffer_bytes_left > target_buffer_space_left) {
+    if ((SANE_Int)s->scanline_buffer_bytes_left > target_buffer_space_left) {
       if (*len > 0) {
         /* At least one full scanline was copied to the buffer */
         DBG(DBG_DBG, "Buffer full at scanline %ld, exiting until next read call\n", s->total_lines_written);
@@ -603,8 +600,9 @@ sane_read(SANE_Handle handle, SANE_Byte *buf,
   /* We get here when we write the final scanline to the caller */
   return SANE_STATUS_GOOD;
 
+  SANE_Status st_deactivate;
 exit:
-  SANE_Status st_deactivate = deactivate_scanner(handle);
+  st_deactivate = deactivate_scanner(handle);
   if (st_deactivate)
     DBG(DBG_ERR, "Error handler encountered an additional error while deactivating scanner: %d\n", st_deactivate);
 

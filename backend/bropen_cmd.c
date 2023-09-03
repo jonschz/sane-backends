@@ -54,23 +54,24 @@ SANE_Bool parseScanInquiryResponse(unsigned char* buffer, struct ScanInquiryResp
   return SANE_TRUE;
 }
 
+// Make sure that text_buffer_len >= 3*buffer_len + 1.
+size_t hex_print_buffer_to_str(char* text_buffer, size_t text_buffer_len, unsigned char* buffer, size_t buffer_len) {
+  size_t position = 0;
+  for (size_t i = 0; i < buffer_len; i++)
+      position += snprintf(&text_buffer[position], text_buffer_len - position, "%02x ", buffer[i]);
+  return position;
+}
 
-void log_error_with_hexdump(char *msg, SANE_Byte *data_buffer, size_t buffer_len) {
+/* msg must have exactly one %s and no other formatted variables */
+void log_error_with_hexdump(int lvl, char *msg, SANE_Byte *data_buffer, size_t buffer_len) {
   const size_t text_len = 3*buffer_len + 1;
   char *text_buffer = malloc(text_len);
   hex_print_buffer_to_str(text_buffer, text_len, data_buffer, buffer_len);
   free(text_buffer);
-  DBG(DBG_ERR, msg, text_buffer);
+  DBG(lvl, msg, text_buffer);
 }
 
 
-// Make sure that text_buffer_len >= 3*buffer_len + 1.
-size_t hex_print_buffer_to_str(char* text_buffer, size_t text_buffer_len, unsigned char* buffer, size_t buffer_len) {
-  size_t position = 0;
-  for (int i = 0; i < buffer_len; i++)
-      position += snprintf(&text_buffer[position], text_buffer_len - position, "%02x ", buffer[i]);
-  return position;
-}
 
   /* Header:
   bytes 0-5: fixed
@@ -95,10 +96,7 @@ SANE_Status parse_data_header(SANE_Byte *buffer, struct DataHeader *output) {
   memcpy(&output->packet_size, &buffer[10], sizeof(output->packet_size));
 
   if (memcmp(&buffer[1], HEADER_EXPECTED, sizeof(HEADER_EXPECTED)) != 0) {
-    DBG(DBG_ERR, "Received invalid data header\n");
-    char debug_buffer[255];
-    hex_print_buffer_to_str(debug_buffer, 255, buffer, 20);
-    DBG(DBG_ERR, "%s\n", debug_buffer);
+    log_error_with_hexdump(DBG_ERR, "Received invalid data header:\n%s\n", buffer, 20);
     return SANE_STATUS_IO_ERROR;
   }
   // ensure endianness (in case host is big-endian)
@@ -134,6 +132,7 @@ SANE_Status activate_scanner(struct scanner *s) {
 
   if (memcmp(s->usb_read_buffer, RESPONSE_ACTIVATE_SCAN, sizeof(RESPONSE_ACTIVATE_SCAN) - 1) != 0) {
       log_error_with_hexdump(
+        DBG_ERR,
         "Unexpected response to scanner activation control signal:\n%s\n",
         s->usb_read_buffer, 10);
       return SANE_STATUS_IO_ERROR;
@@ -159,6 +158,7 @@ SANE_Status deactivate_scanner(struct scanner *s) {
 
   if (memcmp(s->usb_read_buffer, RESPONSE_DEACTIVATE_SCAN, sizeof(RESPONSE_DEACTIVATE_SCAN) - 1) != 0) {
     log_error_with_hexdump(
+      DBG_ERR,
       "Unexpected response to scanner deactivation control signal:\n%s\n",
       s->usb_read_buffer, 10);
     return SANE_STATUS_IO_ERROR;
@@ -279,7 +279,7 @@ void update_window_from_scanner_response(struct scanner *s, struct ScanInquiryRe
 }
 
 SANE_Status send_begin_scan_command(struct scanner *s) {
-    char command_buffer[255];
+    SANE_Byte command_buffer[255];
     size_t command_length = snprintf((char *)command_buffer, WRITE_BUFFER_SIZE,
     /**
      * Third message examples:
@@ -305,8 +305,8 @@ SANE_Status send_begin_scan_command(struct scanner *s) {
     s->window.y_resolution,
     scan_modes_internal[s->window.image_composition],
     format_internal[s->window.format_mode],
-    s->val[BRIGHTNESS],
-    s->val[CONTRAST],
+    s->val[BRIGHTNESS].w,
+    s->val[CONTRAST].w,
     s->window.upper_left_x,
     s->window.upper_left_y,
     s->window.lower_right_x, // TODO work out if this is indeed the bottom right corner, or if it is the width of the scan area
