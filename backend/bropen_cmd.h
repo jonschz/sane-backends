@@ -41,6 +41,7 @@ SANE_Status send_format_inquiry(struct scanner *s);
 SANE_Status read_response_3_attempts(struct scanner *s);
 SANE_Status send_begin_scan_command(struct scanner *s);
 SANE_Status parse_data_header(SANE_Byte *buffer, struct DataHeader *output);
+SANE_Status update_button_state(struct scanner *s);
 void clamp_coordinate(u32 *value, u32 max);
 
 /* from bropen_opt.c */

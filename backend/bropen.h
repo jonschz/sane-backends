@@ -27,6 +27,12 @@
 #define MAX_READ_DATA_SIZE 0x10000
 #define WRITE_BUFFER_SIZE 0xff
 
+#define BUTTON_TEXT 2
+#define BUTTON_IMAGE 3
+#define BUTTON_DOCUMENT 5
+#define BUTTON_EMAIL 8
+
+
 typedef unsigned char u8;
 typedef unsigned u32;
 typedef unsigned short u16;
@@ -65,6 +71,12 @@ typedef enum
   // IMAGE_EMPHASIS,		/* Image emphasis */
   // GAMMA_CORRECTION,		/* Gamma correction */
   // LAMP,				/* Lamp -- color drop out */
+
+  OPT_SENSORS_GROUP,
+
+  OPT_SENSOR_SCAN,
+  OPT_SENSOR_EMAIL,
+
   /* must come last: */
   NUM_OPTIONS
 } KV_OPTION;
@@ -196,6 +208,8 @@ struct scanner
   SANE_Byte *scanline_buffer;
   size_t total_lines_written;
   SANE_Bool read_from_device_complete;
+  /* This value should be cleared to zero once it has been read in sane_control_option(). */
+  SANE_Byte last_button_pressed;
 };
 
 static inline u16

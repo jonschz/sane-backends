@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*.json": "jsonc",
+        "kvs20xx_cmd.h": "c",
+        "kvs20xx.h": "c",
+        "sanei_debug.h": "c",
+        "types.h": "c",
+        "stdio.h": "c",
+        "jpeglib.h": "c",
+        "sanei_jpeg.h": "c",
+        "jerror.h": "c",
+        "saneopts.h": "c"
+    }
+}

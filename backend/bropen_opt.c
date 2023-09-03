@@ -390,6 +390,35 @@ void bropen_init_options(struct scanner *s)
   s->val[LAMP].s = malloc(o->size);
   strcpy(s->val[LAMP].s, lamp_list[0]);
   */
+
+  // TODO WIP: sanebd integration
+  o = &s->opt[OPT_SENSORS_GROUP];
+  o->name  = SANE_NAME_SENSORS;
+  o->title = SANE_TITLE_SENSORS;
+  o->type  = SANE_TYPE_GROUP;
+  o->desc  = SANE_DESC_SENSORS;
+  o->size  = 0;
+
+  // TODO not yet working
+  o = &s->opt[OPT_SENSOR_SCAN];
+  o->name  = SANE_NAME_SCAN;
+  o->title = SANE_TITLE_SCAN;
+  o->desc  = SANE_DESC_SCAN;
+  // works
+  o->type  = SANE_TYPE_STRING;
+  o->size = 2;
+  // This should work, but doesn't (scanbd bug?)
+  // o->type  = SANE_TYPE_BOOL;
+  // o->size  = sizeof(SANE_Word);
+  o->cap   = SANE_CAP_SOFT_DETECT | SANE_CAP_HARD_SELECT | SANE_CAP_ADVANCED;
+
+  o = &s->opt[OPT_SENSOR_EMAIL];
+  o->name  = SANE_NAME_EMAIL;
+  o->title = SANE_TITLE_EMAIL;
+  o->desc  = SANE_DESC_EMAIL;
+  o->type  = SANE_TYPE_STRING;
+  o->cap   = SANE_CAP_SOFT_DETECT | SANE_CAP_HARD_SELECT | SANE_CAP_ADVANCED;
+  o->size = 8;
 }
 
 /* Lookup a string list from one array and return its index. */
@@ -429,18 +458,52 @@ sane_control_option(SANE_Handle handle, SANE_Int option,
 
   if (action == SANE_ACTION_GET_VALUE)
   {
-    if (s->opt[option].type == SANE_TYPE_STRING)
+    // TODO: WIP
+    switch (option)
     {
-      DBG(DBG_INFO, "sane_control_option: reading opt[%d] =  %s\n",
-          option, s->val[option].s);
-      strcpy(val, s->val[option].s);
+    case OPT_SENSOR_SCAN:
+      // FIXME temp code
+      update_button_state(s);
+      DBG(DBG_DBG_MORE, "reading scan option (last button: %d)\n", s->last_button_pressed);
+      if (s->last_button_pressed != 0)
+      {
+        // TODO handle different values for different buttons
+        // This works for some very odd reason when the type is set to STRING
+        // It seems like only the length of the string matters; "0" works too
+        strcpy(val, "1");
+      } else {
+        // could probably also just memset one byte to zero
+        strcpy(val, "");
+      }
+      // *(SANE_Word *)val = '1';
+
+
+      // *(SANE_Bool *)val = SANE_TRUE;
+      // SANE_Bool result = SANE_TRUE;
+      // memcpy(val, &result, sizeof(result));
+      break;
+    case OPT_SENSOR_EMAIL:
+      // FIXME temp code
+      DBG(DBG_DBG_MORE, "reading email option\n");
+      // strcpy(val, SANE_NAME_EMAIL);
+      strcpy(val, "");
+      break;
+    
+    default:
+      if (s->opt[option].type == SANE_TYPE_STRING)
+      {
+        DBG(DBG_INFO, "sane_control_option: reading opt[%d] =  %s\n",
+            option, s->val[option].s);
+        strcpy(val, s->val[option].s);
+      }
+      else
+      {
+        *(SANE_Word *)val = s->val[option].w;
+        DBG(DBG_INFO, "sane_control_option: reading opt[%d] =  %d\n",
+            option, s->val[option].w);
+      }
     }
-    else
-    {
-      *(SANE_Word *)val = s->val[option].w;
-      DBG(DBG_INFO, "sane_control_option: reading opt[%d] =  %d\n",
-          option, s->val[option].w);
-    }
+
     return SANE_STATUS_GOOD;
   }
   else if (action == SANE_ACTION_SET_VALUE)

@@ -327,3 +327,86 @@ SANE_Status send_begin_scan_command(struct scanner *s) {
     return SANE_STATUS_IO_ERROR;
   return SANE_STATUS_GOOD;
 }
+
+
+
+  // The default control signal response to {bRequest = 3, bValue = 0}
+static const char RESPONSE_DEFAULT[] = "\x05\x10\x03\x00\x01";
+static const char RESPONSE_SCANBTN_1[] = "\x04\x10\x03\x10";
+/* static const int RESPONSE_SCANBTN_2_LENGTH = 9; not used because we cannot access the length */
+static const char RESPONSE_SCANBTN_2_START[] = "\x09\x10\x03\x20";
+static const char RESPONSE_SCANBTN_2_END[] = "\x00\x00\x00\x00";
+
+SANE_Status update_button_state(struct scanner *s) {
+  DBG(DBG_DBG_MORE, "sending control signal to query the scanner's buttons\n");
+
+  SANE_Byte ctrl_read_buffer[255];
+
+  memset(ctrl_read_buffer, 0, sizeof(ctrl_read_buffer));
+
+  SANE_Status st = sanei_usb_control_msg(
+    s->file,
+    0xc0,     // bmRequestType = 1 (device-to-host) 10 (vendor) 00000 (device)
+    3,        // bRequest
+    0x0000,   // bValue
+    0,        // wIndex
+    5,        // expected length of output
+    ctrl_read_buffer
+  );
+  
+  /* Unfortunately, we do not get feedback from sanei_usb_control_msg() how much we got back*/
+
+  if (st) {
+    DBG(DBG_ERR, "control signal for button query failed\n");
+    return st;
+  }
+
+  if (0 == memcmp(ctrl_read_buffer, RESPONSE_DEFAULT, sizeof(RESPONSE_DEFAULT) - 1))
+    /* No (new) button pressed */
+    return SANE_STATUS_GOOD;
+  
+  if (0 == memcmp(ctrl_read_buffer, RESPONSE_SCANBTN_1, sizeof(RESPONSE_SCANBTN_1) - 1)) {
+    DBG(DBG_DBG, "Received first button press signal, waiting for second one\n");
+    while (1) {
+      memset(ctrl_read_buffer, 0, sizeof(ctrl_read_buffer));
+      SANE_Status st = sanei_usb_control_msg(
+        s->file,
+        0xc0,     // bmRequestType = 1 (device-to-host) 10 (vendor) 00000 (device)
+        3,        // bRequest
+        0x0000,   // bValue
+        0,        // wIndex
+        9,        // expected length of output
+        ctrl_read_buffer
+      );
+      if (st) {
+        DBG(DBG_ERR, "control signal for button query failed\n");
+        return st;
+      }
+      if (0 == memcmp(ctrl_read_buffer, RESPONSE_DEFAULT, sizeof(RESPONSE_DEFAULT) - 1)) {
+        usleep(5*1000);
+        continue;
+      }
+      else if (0 == memcmp(ctrl_read_buffer, RESPONSE_SCANBTN_2_START, 4)
+          && 0 == memcmp(&ctrl_read_buffer[5], RESPONSE_SCANBTN_2_END, 4)) {
+        /* We have a button press */
+        /* TODO introduce a mapping and an enum here once I have decoded the map
+          * 5 = document
+          * 3 = image
+          * 2 = text
+          * 8 = email
+        */
+        // TODO is the read from the scanner interface necessary? It may contain additional data on other scanners
+        // Might be important for simplex / duplex
+        // Better idea: Set an optional parameter. If enabled, will read information from the scanner as needed
+        s->last_button_pressed = ctrl_read_buffer[4];
+        DBG(DBG_DBG, "Received button press: %d\n", s->last_button_pressed);
+        break;
+      }
+      else {
+        log_error_with_hexdump(DBG_WARN, "Unknown control signal response:\n%s\n", ctrl_read_buffer, 20);
+        break;
+      }
+    }
+  }
+  return SANE_STATUS_GOOD;
+}
