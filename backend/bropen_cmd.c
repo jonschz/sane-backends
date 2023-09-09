@@ -67,8 +67,8 @@ void log_error_with_hexdump(int lvl, char *msg, SANE_Byte *data_buffer, size_t b
   const size_t text_len = 3*buffer_len + 1;
   char *text_buffer = malloc(text_len);
   hex_print_buffer_to_str(text_buffer, text_len, data_buffer, buffer_len);
-  free(text_buffer);
   DBG(lvl, msg, text_buffer);
+  free(text_buffer);
 }
 
 
@@ -162,6 +162,12 @@ SANE_Status deactivate_scanner(struct scanner *s) {
       "Unexpected response to scanner deactivation control signal:\n%s\n",
       s->usb_read_buffer, 10);
     return SANE_STATUS_IO_ERROR;
+  }
+
+  st = sanei_usb_release_interface(s->file, INTERFACE_INDEX);
+  if (st) {
+    DBG(DBG_ERR, "Failed to release interface\n");
+    return st;
   }
 
   return SANE_STATUS_GOOD;

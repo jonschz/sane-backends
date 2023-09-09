@@ -138,7 +138,7 @@ sane_get_devices(const SANE_Device ***device_list,
   DBG(DBG_INFO, "Listing Brother USB devices\n");
   free_devlist();
 
-  /*
+#ifdef MOCK_DEVICE
   // Add a dummy device
   devlist = malloc (sizeof (SANE_Device *) * 2);
   devlist[0] = malloc (sizeof (SANE_Device));
@@ -150,7 +150,8 @@ sane_get_devices(const SANE_Device ***device_list,
   devlist[0]->vendor = "Brother";
 
   *device_list = (const SANE_Device **) devlist;
-  */
+  
+#else
 
   for (curr_scan_dev = 0;
        curr_scan_dev < sizeof(known_devices) / sizeof(known_devices[0]);
@@ -163,6 +164,8 @@ sane_get_devices(const SANE_Device ***device_list,
   }
   if (device_list)
     *device_list = (const SANE_Device **)devlist;
+
+#endif  
   return SANE_STATUS_GOOD;
 }
 
@@ -173,8 +176,9 @@ sane_open(SANE_String_Const devname, SANE_Handle *handle)
   DBG(DBG_DBG, "Call to sane_open() with name `%s'\n", devname);
   unsigned i, j, id = 0;
   struct scanner *s;
-  SANE_Int h;
+  SANE_Int h = 0;
   SANE_Status st;
+  #ifndef MOCK_DEVICE
 
   if (!devlist)
   {
@@ -209,17 +213,21 @@ sane_open(SANE_String_Const devname, SANE_Handle *handle)
   DBG(DBG_DBG, "Trying to open `%s'\n", devlist[i]->name);
 
   st = sanei_usb_open(devlist[i]->name, &h);
-  if (st)
-    return st;
-
-  // TODO Do I want to claim the interface here?
-  // Maybe only needed when scan_start() is called
-  st = sanei_usb_claim_interface(h, INTERFACE_INDEX);
-  if (st)
-  {
-    sanei_usb_close(h);
+  if (st) {
+    DBG(DBG_DBG, "sanei_usb_open() failed with code %d\n", st);
     return st;
   }
+
+  // TODO test: for some odd reason, sanei_usb_open() claims the interface,
+  // which we don't want. See if releasing fixes the problems
+  st = sanei_usb_release_interface(h, INTERFACE_INDEX);
+  if (st) {
+    DBG(DBG_DBG, "Failed to release interface after sanei_usb_open() with code %d\n", st);
+    sanei_usb_close(h);
+  }
+
+
+  #endif
 
   s = malloc(sizeof(struct scanner));
   if (!s)
@@ -278,6 +286,12 @@ sane_start(SANE_Handle handle)
   SANE_Status st = SANE_STATUS_GOOD;
 
   s->cancelled = SANE_FALSE;
+
+
+  DBG(DBG_DBG, "Claiming interface\n");
+  st = sanei_usb_claim_interface(s->file, INTERFACE_INDEX);
+  if (st)
+    goto exit;
 
   // TODO migrate code here as apropriate
   bropen_init_window(s);

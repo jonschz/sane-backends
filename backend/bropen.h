@@ -5,6 +5,9 @@
    TODO add copyright + info
 */
 
+
+// #define MOCK_DEVICE
+
 #include <sys/param.h>
 #include <jpeglib.h>
 
@@ -76,6 +79,7 @@ typedef enum
 
   OPT_SENSOR_SCAN,
   OPT_SENSOR_EMAIL,
+  OPT_SENSOR_MESSAGE,
 
   /* must come last: */
   NUM_OPTIONS

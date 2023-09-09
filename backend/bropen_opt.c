@@ -399,7 +399,6 @@ void bropen_init_options(struct scanner *s)
   o->desc  = SANE_DESC_SENSORS;
   o->size  = 0;
 
-  // TODO not yet working
   o = &s->opt[OPT_SENSOR_SCAN];
   o->name  = SANE_NAME_SCAN;
   o->title = SANE_TITLE_SCAN;
@@ -419,6 +418,17 @@ void bropen_init_options(struct scanner *s)
   o->type  = SANE_TYPE_STRING;
   o->cap   = SANE_CAP_SOFT_DETECT | SANE_CAP_HARD_SELECT | SANE_CAP_ADVANCED;
   o->size = 8;
+
+  o = &s->opt[OPT_SENSOR_MESSAGE];
+  o->name  = "message";
+  o->title = "Message (for scanbd function)"; /* TODO move to header if it works */
+  o->desc  = "Message (for scanbd function)";
+  // works
+  o->type  = SANE_TYPE_STRING;
+  o->size = 32;
+  o->cap   = SANE_CAP_SOFT_DETECT | SANE_CAP_HARD_SELECT | SANE_CAP_ADVANCED;
+  s->val[OPT_SENSOR_MESSAGE].s = malloc (o->size);
+  strcpy (s->val[OPT_SENSOR_MESSAGE].s, "");
 }
 
 /* Lookup a string list from one array and return its index. */
@@ -463,7 +473,11 @@ sane_control_option(SANE_Handle handle, SANE_Int option,
     {
     case OPT_SENSOR_SCAN:
       // FIXME temp code
-      update_button_state(s);
+      #ifdef MOCK_DEVICE
+        s->last_button_pressed = 2;
+      #else
+        update_button_state(s);
+      #endif
       DBG(DBG_DBG_MORE, "reading scan option (last button: %d)\n", s->last_button_pressed);
       if (s->last_button_pressed != 0)
       {
@@ -471,8 +485,26 @@ sane_control_option(SANE_Handle handle, SANE_Int option,
         // This works for some very odd reason when the type is set to STRING
         // It seems like only the length of the string matters; "0" works too
         strcpy(val, "1");
+        switch (s->last_button_pressed) {
+        case BUTTON_TEXT:
+          strcpy(s->val[OPT_SENSOR_MESSAGE].s, "TEXT");
+          break;
+        case BUTTON_IMAGE:
+          strcpy(s->val[OPT_SENSOR_MESSAGE].s, "IMAGE");
+          break;
+        case BUTTON_DOCUMENT:
+          strcpy(s->val[OPT_SENSOR_MESSAGE].s, "DOCUMENT");
+          break;
+        // TODO move below, skip here?
+        // Probably yes; email is likely a different script
+        case BUTTON_EMAIL:
+          strcpy(s->val[OPT_SENSOR_MESSAGE].s, "EMAIL");
+          break;
+        default:
+          snprintf(s->val[OPT_SENSOR_MESSAGE].s, s->opt[OPT_SENSOR_MESSAGE].size, "UNKNOWN%d", s->last_button_pressed);
+        }
+        s->last_button_pressed = 0;
       } else {
-        // could probably also just memset one byte to zero
         strcpy(val, "");
       }
       // *(SANE_Word *)val = '1';
@@ -489,6 +521,13 @@ sane_control_option(SANE_Handle handle, SANE_Int option,
       strcpy(val, "");
       break;
     
+    case OPT_SENSOR_MESSAGE:
+      DBG(DBG_DBG_MORE, "reading message option\n");
+      strcpy(val, s->val[OPT_SENSOR_MESSAGE].s);
+      /* Clear the message when read */
+      strcpy(s->val[OPT_SENSOR_MESSAGE].s, "");
+      break;
+
     default:
       if (s->opt[option].type == SANE_TYPE_STRING)
       {

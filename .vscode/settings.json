@@ -9,6 +9,7 @@
         "jpeglib.h": "c",
         "sanei_jpeg.h": "c",
         "jerror.h": "c",
-        "saneopts.h": "c"
+        "saneopts.h": "c",
+        "bropen.h": "c"
     }
 }
